@@ -96,12 +96,12 @@ module Opal
       ##
       # Vars to use inside each scope
       def to_vars
-        vars = @locals.map { |l| "#{l} = nil" }
+        vars = @locals.map { |l| "#{l} = null" }
         vars.push *@temps
         current_self = @parser.current_self
 
         iv = ivars.map do |ivar|
-         "if (#{current_self}#{ivar} == null) #{current_self}#{ivar} = nil;\n"
+         "if (#{current_self}#{ivar} == null) #{current_self}#{ivar} = null;\n"
         end
 
         indent = @parser.parser_indent
@@ -110,7 +110,7 @@ module Opal
 
         if class? and !@proto_ivars.empty?
           pvars = @proto_ivars.map { |i| "#{proto}#{i}"}.join(' = ')
-          "%s\n%s%s = nil;" % [str, indent, pvars]
+          "%s\n%s%s = null;" % [str, indent, pvars]
         else
           str
         end

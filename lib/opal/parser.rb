@@ -182,7 +182,7 @@ module Opal
         @scope.add_temp "__opal = Opal"
         @scope.add_temp "self = __opal.top"
         @scope.add_temp "__scope = __opal"
-        @scope.add_temp "nil = __opal.nil"
+        # @scope.add_temp "nil = __opal.nil"
         @scope.add_temp "def = #{current_self}._klass.prototype" if @scope.defines_defn
         @helpers.keys.each { |h| @scope.add_temp "__#{h} = __opal.#{h}" }
 
@@ -749,7 +749,7 @@ module Opal
         end
       end
 
-      out.join(", \n#@indent") + ', nil'
+      out.join(", \n#@indent") + ', null'
     end
 
     def handle_alias_native(sexp)
@@ -1172,11 +1172,15 @@ module Opal
 
     # s(:true)  # => true
     # s(:false) # => false
-    # s(:nil)   # => nil
-    %w(true false nil).each do |name|
+    %w(true false).each do |name|
       define_method "process_#{name}" do |exp, level|
         name
       end
+    end
+
+    # s(:nil)   # => null
+    def process_nil(sexp, level)
+      'null'
     end
 
     # s(:array [, sexp [, sexp]])
@@ -1529,83 +1533,33 @@ module Opal
       indent { code += "\n#@indent} else {\n#@indent#{process falsy, :stmt}" } if falsy
       code += "\n#@indent}"
 
-      code = "(function() { #{code}; return nil; }).call(#{current_self})" if returnable
+      code = "(function() { #{code}; return null; }).call(#{current_self})" if returnable
 
       code
     end
 
-    def js_truthy_optimize(sexp)
-      if sexp.first == :call
-        mid = sexp[2]
-        if mid == :block_given?
-          return process sexp, :expr
-        elsif COMPARE.include? mid.to_s
-          return process sexp, :expr
-        elsif mid == :"=="
-          return process sexp, :expr
-        end
-      elsif [:lvar, :self].include? sexp.first
-        name = process sexp, :expr
-        "#{name} !== false && #{name} !== nil"
-      end
-    end
-
     def js_truthy(sexp)
-      if optimized = js_truthy_optimize(sexp)
-        return optimized
-      end
-
-      with_temp do |tmp|
-        "(%s = %s) !== false && %s !== nil" % [tmp, process(sexp, :expr), tmp]
-      end
+      process sexp, :expr
     end
 
     def js_falsy(sexp)
-      if sexp.first == :call
-        mid = sexp[2]
-        if mid == :block_given?
-          return handle_block_given(sexp, true)
-        end
-      end
-
-      with_temp do |tmp|
-        "(%s = %s) === false || %s === nil" % [tmp, process(sexp, :expr), tmp]
-      end
+      "!(#{process sexp, :expr})"
     end
 
     # s(:and, lhs, rhs)
     def process_and(sexp, level)
       lhs = sexp[0]
       rhs = sexp[1]
-      t = nil
-      tmp = @scope.new_temp
 
-      if t = js_truthy_optimize(lhs)
-        return "((#{tmp} = #{t}) ? #{process rhs, :expr} : #{tmp})".tap {
-          @scope.queue_temp tmp
-        }
-      end
-
-      @scope.queue_temp tmp
-
-      "(%s = %s, %s !== false && %s !== nil ? %s : %s)" %
-        [tmp, process(lhs, :expr), tmp, tmp, process(rhs, :expr), tmp]
+      "(#{process lhs, :expr}) && (#{process rhs, :expr})"
     end
 
     # s(:or, lhs, rhs)
     def process_or(sexp, level)
       lhs = sexp[0]
       rhs = sexp[1]
-      t = nil
 
-      with_temp do |tmp|
-        # if t = js_truthy_optimize(lhs)
-          # "((%s = %s) ? %s : %s)" % [tmp, t, tmp, process(rhs, :expr)]
-        # else
-          "((%s = %s), %s !== false && %s !== nil ? %s : %s)" %
-            [tmp, process(lhs, :expr), tmp, tmp, tmp, process(rhs, :expr)]
-        # end
-      end
+      "(#{process lhs, :expr}) || (#{process rhs, :expr})"
     end
 
     # s(:yield, arg1, arg2)
