@@ -111,7 +111,8 @@ var no_block_given = function() {
 };
 
 // Boot a base class (makes instances).
-var boot_defclass = function(id, constructor, superklass) {
+// var boot_defclass = function(id, constructor, superklass) {
+var boot_defclass = function(constructor, superklass) {
   if (superklass) {
     var ctor           = function() {};
         ctor.prototype = superklass.prototype;
@@ -119,26 +120,39 @@ var boot_defclass = function(id, constructor, superklass) {
     constructor.prototype = new ctor();
   }
 
-  var prototype = constructor.prototype;
-
-  prototype.constructor = constructor;
-  prototype._isObject   = true;
-  prototype._klass      = constructor;
-
-  constructor._included_in  = [];
-  constructor._isClass      = true;
-  constructor._name         = id;
-  constructor._super        = superklass;
-  constructor._methods      = [];
-  constructor._smethods     = [];
-  constructor._isObject     = false;
-
-  constructor._donate = __donate;
-  constructor._sdonate = __sdonate;
-
-  Opal[id] = constructor;
+  constructor.prototype.constructor = constructor;
+  constructor.prototype._isObject = true;
 
   return constructor;
+};
+
+// Boot actual (meta classes) of core objects
+var boot_makemeta = function(id, klass, superklass) {
+  var meta = function() {};
+  var ctor = function() {};
+
+  ctor.prototype = superklass.prototype;
+  meta.prototype = new ctor();
+
+  var proto              = meta.prototype;
+      proto.$included_in = [];
+      proto._alloc       = klass;
+      proto._isClass     = true;
+      proto._name        = id;
+      proto._super       = superklass;
+      proto.constructor  = meta;
+      proto._methods     = [];
+      proto._isObject    = false;
+
+  var result = new meta();
+  klass.prototype._klass = result;
+  klass.prototype._real  = result;
+
+  result._proto = klass.prototype;
+
+  Opal[id] = result;
+
+  return result;
 };
 
 // Create generic class with given superclass.
@@ -149,32 +163,33 @@ var boot_class = function(superklass, constructor) {
   constructor.prototype = new ctor();
   var prototype = constructor.prototype;
 
-  prototype._klass      = constructor;
   prototype.constructor = constructor;
+  prototype._isObject = true;
 
-  constructor._included_in  = [];
-  constructor._isClass      = true;
-  constructor._super        = superklass;
-  constructor._methods      = [];
-  constructor._isObject     = false;
-  constructor._klass        = Class;
-  constructor._donate       = __donate
-  constructor._sdonate      = __sdonate;
+  // class itself
+  var meta = function() {
+    this._id = unique_id++;
+  };
 
-  constructor['$==='] = module_eqq;
-  constructor.$to_s = module_to_s;
+  var mtor = function() {};
+      mtor.prototype = superklass.constructor.prototype;
 
-  var smethods;
+  meta.prototype = new mtor();
 
-  smethods = superklass._smethods.slice();
+  proto             = meta.prototype;
+  proto._alloc      = constructor;
+  proto._isClass    = true;
+  proto.constructor = meta;
+  proto._super      = superklass;
+  proto._methods    = [];
 
-  constructor._smethods = smethods;
-  for (var i = 0, length = smethods.length; i < length; i++) {
-    var m = smethods[i];
-    constructor[m] = superklass[m];
-  }
+  var result = new meta();
+  constructor.prototype._klass = result;
+  constructor.prototype._real  = result;
 
-  return constructor;
+  result._proto = constructor.prototype;
+
+  return result;
 };
 
 var bridge_class = function(constructor) {
@@ -191,14 +206,14 @@ var bridge_class = function(constructor) {
   constructor._donate = function(){};
   constructor._sdonate = __sdonate;
 
-  constructor['$==='] = module_eqq;
-  constructor.$to_s = module_to_s;
+  // constructor['$==='] = module_eqq;
+  // constructor.$to_s = module_to_s;
 
-  var smethods = constructor._smethods = Class._methods.slice();
-  for (var i = 0, length = smethods.length; i < length; i++) {
-    var m = smethods[i];
-    constructor[m] = Object[m];
-  }
+  // var smethods = constructor._smethods = Class._methods.slice();
+  // for (var i = 0, length = smethods.length; i < length; i++) {
+    // var m = smethods[i];
+    // constructor[m] = Object[m];
+  // }
 
   bridged_classes.push(constructor);
 
@@ -219,13 +234,23 @@ Opal.puts = function(a) { console.log(a); };
 // Initialization
 // --------------
 
-boot_defclass('BasicObject', BasicObject)
-boot_defclass('Object', Object, BasicObject);
-boot_defclass('Class', Class, Object);
+// The *instances* of core objects
+var BootBasicObject = boot_defclass(BasicObject);
+var BootObject      = boot_defclass(Object, BootBasicObject);
+var BootClass       = boot_defclass(Class, BootObject);
 
-Class.prototype = Function.prototype;
+// The *classes* of core objects
+var RubyBasicObject = boot_makemeta('BasicObject', BootBasicObject, BootClass);
+var RubyObject      = boot_makemeta('Object', BootObject, RubyBasicObject.constructor);
+var RubyClass       = boot_makemeta('Class', BootClass, RubyObject.constructor);
 
-BasicObject._klass = Object._klass = Class._klass = Class;
+// boot_defclass('BasicObject', BasicObject)
+// boot_defclass('Object', Object, BasicObject);
+// boot_defclass('Class', Class, Object);
+
+// Class.prototype = Function.prototype;
+
+// BasicObject._klass = Object._klass = Class._klass = Class;
 
 // Implementation of Class#===
 function module_eqq(object) {

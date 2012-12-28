@@ -126,10 +126,10 @@ module Opal
             [@parser.parser_indent, @methods.map(&:inspect).join(', ')]
         end
 
-        unless @smethods.empty?
-          out += "%s;#{@name}._sdonate([%s]);" %
-            [@parser.parser_indent, @smethods.map(&:inspect).join(', ')]
-        end
+        # unless @smethods.empty?
+          # out += "%s;#{@name}._sdonate([%s]);" %
+            # [@parser.parser_indent, @smethods.map(&:inspect).join(', ')]
+        # end
 
         out
       end
