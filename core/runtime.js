@@ -45,16 +45,16 @@ Opal.klass = function(base, superklass, id, constructor) {
   }
 
   if (superklass === null) {
-    superklass = Object;
+    superklass = RubyObject;
   }
 
   if (__hasOwn.call(base._scope, id)) {
     klass = base._scope[id];
   }
   else {
-    if (!superklass._methods) {
+    if (!superklass._klass || !superklass._proto) {
       var bridged = superklass;
-      superklass  = Object;
+      superklass  = RubyObject;
       klass       = bridge_class(bridged);
     }
     else {
@@ -89,7 +89,7 @@ Opal.module = function(base, id, constructor) {
     klass = base._scope[id];
   }
   else {
-    klass = boot_class(Class, constructor);
+    klass = boot_class(RubyClass, constructor);
     klass._name = (base === Object ? id : base._name + '::' + id);
 
     klass.$included_in = [];
@@ -149,6 +149,7 @@ var boot_makemeta = function(id, klass, superklass) {
   klass.prototype._real  = result;
 
   result._proto = klass.prototype;
+  result._donate = function() { console.log('donating for ' + id); };
 
   Opal[id] = result;
 
@@ -157,6 +158,7 @@ var boot_makemeta = function(id, klass, superklass) {
 
 // Create generic class with given superclass.
 var boot_class = function(superklass, constructor) {
+  // instances of class
   var ctor = function() {};
       ctor.prototype = superklass.prototype;
 
@@ -176,7 +178,7 @@ var boot_class = function(superklass, constructor) {
 
   meta.prototype = new mtor();
 
-  proto             = meta.prototype;
+  var proto             = meta.prototype;
   proto._alloc      = constructor;
   proto._isClass    = true;
   proto.constructor = meta;
@@ -188,23 +190,57 @@ var boot_class = function(superklass, constructor) {
   constructor.prototype._real  = result;
 
   result._proto = constructor.prototype;
+  result._donate = function() { console.log("donating..."); };
 
   return result;
 };
 
 var bridge_class = function(constructor) {
-  constructor.prototype._klass = constructor;
+  // class (meta)
+  var meta = function() {
+    this._id = unique_id++;
+  };
 
-  constructor._included_in  = [];
-  constructor._isClass      = true;
-  constructor._super        = Object;
-  constructor._klass        = Class;
-  constructor._methods      = [];
-  constructor._smethods     = [];
-  constructor._isObject     = false;
+  var mtor = function() {};
+  mtor.prototype = RubyObject.constructor.prototype;
 
-  constructor._donate = function(){};
-  constructor._sdonate = __sdonate;
+  meta.prototype = new mtor();
+
+  var proto         = meta.prototype;
+  proto._alloc      = constructor;
+  proto._isClass    = true;
+  proto.constructor = meta;
+  proto._super      = RubyObject;
+  proto._methods    = [];
+
+  result = new meta();
+
+  constructor.prototype._klass  = result;
+  constructor.prototype._real   = result;
+
+  result._proto = constructor.prototype;
+  result._donate = function() { console.log('donating bridged for ' + constructor); };
+
+
+
+  return result;
+
+
+
+
+
+  // constructor.prototype._klass = constructor;
+
+  // constructor._included_in  = [];
+  // constructor._isClass      = true;
+  // constructor._super        = Object;
+  // constructor._klass        = Class;
+  // constructor._methods      = [];
+  // constructor._smethods     = [];
+  // constructor._isObject     = false;
+
+  // constructor._donate = function(){};
+  // constructor._sdonate = __sdonate;
 
   // constructor['$==='] = module_eqq;
   // constructor.$to_s = module_to_s;
@@ -217,6 +253,7 @@ var bridge_class = function(constructor) {
 
   bridged_classes.push(constructor);
 
+  /* FIXME
   var table = Object.prototype, methods = Object._methods;
 
   for (var i = 0, length = methods.length; i < length; i++) {
@@ -225,6 +262,7 @@ var bridge_class = function(constructor) {
   }
 
   constructor._smethods.push('$allocate');
+  */
 
   return constructor;
 };
@@ -309,9 +347,9 @@ function __sdonate(defined) {
 
 var bridged_classes = Object.$included_in = [];
 
-BasicObject._scope = Object._scope = Opal;
+RubyBasicObject._scope = RubyObject._scope = Opal;
 Opal.Module = Opal.Class;
-Opal.Kernel = Object;
+Opal.Kernel = RubyObject;
 
 var class_const_alloc = function(){};
 var class_const_scope = new TopScope();
@@ -322,10 +360,10 @@ Object.prototype.toString = function() {
   return this.$to_s();
 };
 
-Opal.top = new Object;
+Opal.top = new RubyObject._alloc();
 
-Opal.klass(Object, Object, 'NilClass', NilClass)
-Opal.nil = new NilClass;
+Opal.klass(RubyObject, RubyObject, 'NilClass', NilClass);
+Opal.nil = new Opal.NilClass._alloc();
 Opal.nil.call = Opal.nil.apply = no_block_given;
 
 Opal.breaker  = new Error('unexpected break');

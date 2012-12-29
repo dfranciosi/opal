@@ -46,6 +46,7 @@ class Class
   end
 
   def append_features(klass)
+    return
     %x{
       var module = #{self};
 

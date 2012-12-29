@@ -1,6 +1,6 @@
 class Numeric < `Number`
   %x{
-    Numeric.prototype._isNumber = true;
+    def._isNumber = true;
   }
 
   include Comparable

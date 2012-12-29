@@ -2,8 +2,8 @@ class Hash
   include Enumerable
 
   %x{
-    __hash = Opal.hash = function() {
-      var hash   = new Hash,
+    var __hash = Opal.hash = function() {
+      var hash   = new Hash._alloc(),
           args   = __slice.call(arguments),
           keys   = [],
           assocs = {};
@@ -28,8 +28,8 @@ class Hash
     // strings as keys. The map and keys array can be constructed at
     // compile time, so they are just added here by the constructor
     // function
-    __hash2 = Opal.hash2 = function(map) {
-      var hash = new Hash;
+    var __hash2 = Opal.hash2 = function(map) {
+      var hash = new Hash._alloc();
       hash.map = map;
       return hash;
     }
