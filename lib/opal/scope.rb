@@ -122,7 +122,7 @@ module Opal
 
         if should_donate? and !@methods.empty?
         # unless @methods.empty?
-          out += "%s;#{@name}._donate([%s]);" %
+          out += "%s;_#{@name}._donate([%s]);" %
             [@parser.parser_indent, @methods.map(&:inspect).join(', ')]
         end
 

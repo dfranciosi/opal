@@ -160,7 +160,7 @@ var boot_makemeta = function(id, klass, superklass) {
 var boot_class = function(superklass, constructor) {
   // instances of class
   var ctor = function() {};
-      ctor.prototype = superklass.prototype;
+      ctor.prototype = superklass._alloc.prototype;
 
   constructor.prototype = new ctor();
   var prototype = constructor.prototype;

@@ -3,7 +3,7 @@ class Hash
 
   %x{
     var __hash = Opal.hash = function() {
-      var hash   = new Hash._alloc(),
+      var hash   = new _Hash._alloc(),
           args   = __slice.call(arguments),
           keys   = [],
           assocs = {};
@@ -29,7 +29,7 @@ class Hash
     // compile time, so they are just added here by the constructor
     // function
     var __hash2 = Opal.hash2 = function(map) {
-      var hash = new Hash._alloc();
+      var hash = new _Hash._alloc();
       hash.map = map;
       return hash;
     }

@@ -373,7 +373,7 @@ module Kernel
           return #{self}._singleton;
         }
 
-        var meta = new __opal.Class;
+        var meta = new __opal.Class._alloc;
         meta._klass = __opal.Class;
         #{self}._singleton = meta;
         meta.prototype = #{self};

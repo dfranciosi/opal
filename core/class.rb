@@ -27,7 +27,7 @@ class Class
   end
 
   def alias_method(newname, oldname)
-    `#{self}.prototype['$' + newname] = #{self}.prototype['$' + oldname]`
+    `#{self}._proto['$' + newname] = #{self}._proto['$' + oldname]`
     self
   end
 
@@ -104,10 +104,10 @@ class Class
 
       var jsid    = '$' + name;
       block._jsid = jsid;
-      block._sup  = #{self}.prototype[jsid];
+      block._sup  = #{self}._proto[jsid];
       block._s    = null;
 
-      #{self}.prototype[jsid] = block;
+      #{self}._proto[jsid] = block;
       #{self}._donate([jsid]);
 
       return nil;
@@ -181,7 +181,7 @@ class Class
 
   def new(*args, &block)
     %x{
-      var obj = new #{self};
+      var obj = new #{self}._alloc();
       obj._id = unique_id++;
       obj.$initialize._p  = block;
 

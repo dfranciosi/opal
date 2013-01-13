@@ -905,7 +905,7 @@ module Opal
       indent do
         in_scope(:class) do
           @scope.name = name
-          @scope.add_temp "#{ @scope.proto } = #{name}._proto", "__scope = #{name}._scope"
+          @scope.add_temp "#{ @scope.proto } = _#{name}._proto", "__scope = _#{name}._scope"
 
           if Array === body.last
             # A single statement will need a block
@@ -929,8 +929,8 @@ module Opal
       end
 
       spacer  = "\n#{@indent}#{INDENT}"
-      cls     = "function #{name}() {};"
-      boot    = "#{name} = __klass(__base, __super, #{name.inspect}, #{name});"
+      cls     = "function _#{name}() {};"
+      boot    = "_#{name} = __klass(__base, __super, #{name.inspect}, _#{name});"
 
       "(function(__base, __super){#{spacer}#{cls}#{spacer}#{boot}\n#{code}\n#{@indent}})(#{base}, #{sup})"
     end
@@ -974,15 +974,15 @@ module Opal
       indent do
         in_scope(:module) do
           @scope.name = name
-          @scope.add_temp "#{ @scope.proto } = #{name}._proto", "__scope = #{name}._scope"
+          @scope.add_temp "#{ @scope.proto } = _#{name}._proto", "__scope = _#{name}._scope"
           body = process body, :stmt
           code = @indent + @scope.to_vars + "\n\n#@indent" + body + "\n#@indent" + @scope.to_donate_methods
         end
       end
 
       spacer  = "\n#{@indent}#{INDENT}"
-      cls     = "function #{name}() {};"
-      boot    = "#{name} = __module(__base, #{name.inspect}, #{name});"
+      cls     = "function _#{name}() {};"
+      boot    = "_#{name} = __module(__base, #{name.inspect}, _#{name});"
 
       "(function(__base){#{spacer}#{cls}#{spacer}#{boot}\n#{code}\n#{@indent}})(#{base})"
     end
@@ -1099,7 +1099,7 @@ module Opal
       if recvr
         if smethod
           @scope.smethods << "$#{mid}"
-          "#{ @scope.name }#{jsid} = #{defcode}"
+          "_#{ @scope.name }#{jsid} = #{defcode}"
         else
           "#{ recv }#{ jsid } = #{ defcode }"
         end
@@ -1158,7 +1158,7 @@ module Opal
     # and module bodies.
     def current_self
       if @scope.class_scope?
-        @scope.name
+        "_#{@scope.name}"
       elsif @scope.top?
         'self'
       elsif @scope.top?
