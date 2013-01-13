@@ -20,7 +20,7 @@ class Class
 
   def allocate
     %x{
-      var obj = new #{self};
+      var obj = new #{self}._alloc();
       obj._id = unique_id++;
       return obj;
     }
